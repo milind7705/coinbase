@@ -9,6 +9,20 @@ import (
 
 type Channel string
 
+const (
+	Name    = "coinbase"
+	Scheme  = "wss"
+	Host    = "ws-feed.exchange.coinbase.com"
+	Path    = ""
+	Maxsize = 200
+	Type    = "subscribe"
+)
+
+var (
+	ProductIds = []string{"BTC-USD", "ETH-USD", "ETH-BTC"}
+	Channels   = []Channel{"matches"}
+)
+
 type Exchange struct {
 	Env     string `yaml:"env"`
 	Name    string `yaml:"name"`
@@ -34,4 +48,13 @@ func NewExchange(configFilename string) (*Exchange, error) {
 		return nil, xerrors.Errorf("unable to parse yaml: %s: %w", configFilename, err)
 	}
 	return &exchange, nil
+}
+
+func DefaultExchange() (*Exchange, error) {
+	return &Exchange{Name: Name, Scheme: Scheme, Host: Host, Path: Path, Maxsize: Maxsize,
+		Message: struct {
+			Type       string    "yaml:\"type\""
+			ProductIds []string  "yaml:\"product_ids\""
+			Channels   []Channel "yaml:\"channels\""
+		}{Type: Type, ProductIds: ProductIds, Channels: Channels}}, nil
 }

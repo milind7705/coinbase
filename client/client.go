@@ -2,11 +2,14 @@ package client
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"main/config"
 	"main/internal/trade"
 	"net/url"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -32,7 +35,7 @@ func NewClient(scheme string, host string, path string) *Client {
 		Scheme: scheme, Host: host, Path: path,
 	}
 }
-func (client Client) Connect(exchange *config.Exchange) {
+func (client Client) Connect(exchange *config.Exchange, responseChannel chan trade.Response) {
 
 	done = make(chan interface{})
 
@@ -47,12 +50,12 @@ func (client Client) Connect(exchange *config.Exchange) {
 	}
 
 	log.Printf("Connecting to %s", u.String())
+
 	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
 		log.Fatal("dial:", err)
 	}
 	defer conn.Close()
-	log.Print(message)
 
 	err = conn.WriteJSON(message)
 	if err != nil {
@@ -60,7 +63,7 @@ func (client Client) Connect(exchange *config.Exchange) {
 		return
 	}
 
-	go receiveHandler(conn)
+	receiveHandler(conn, responseChannel)
 	for {
 		select {
 		case <-interrupt:
@@ -85,19 +88,30 @@ func (client Client) Connect(exchange *config.Exchange) {
 	}
 }
 
-func receiveHandler(connection *websocket.Conn) {
-	defer close(done)
-	for {
-		_, msg, err := connection.ReadMessage()
-		if err != nil {
-			log.Println("Error in receive:", err)
-			return
+func receiveHandler(connection *websocket.Conn, responseChannel chan trade.Response) {
+	go func() {
+		for {
+			_, msg, err := connection.ReadMessage()
+			if err != nil {
+				fmt.Println("Error in receive:", err)
+				return
+			}
+			resp := trade.Response{}
+			err = json.Unmarshal(msg, &resp)
+			if err != nil {
+				log.Fatal("Fatal")
+			}
+			responseChannel <- resp
 		}
-		resp := trade.Trade{}
-		err = json.Unmarshal(msg, &resp)
-		if err != nil {
-			log.Fatal("Fatal")
-		}
-		log.Printf("Received: %v\n", resp)
-	}
+	}()
+}
+
+func (client *Client) InitSignalHandler() {
+	sig := make(chan os.Signal, 1)
+
+	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
+
+	log.Print("Closing")
+
+	// client.Stop(<-sig)
 }
