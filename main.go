@@ -13,13 +13,11 @@ import (
 const numberOfArgs = 2
 
 var OSSignal chan os.Signal
+var err error
 
 func main() {
 
-	exchange, err := config.DefaultExchange()
-	if err != nil {
-		panic("Unable to create exchange, check the default configs.")
-	}
+	exchange, _ := config.DefaultExchange()
 
 	if len(os.Args) != numberOfArgs {
 		log.Printf("Config file missing, using default args to initialize.")
