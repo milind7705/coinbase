@@ -29,20 +29,12 @@ ifndef GOIMPORTS
 	@GOIMPORTS := $(shell command -v goimports )
 endif
 	@echo ">>> goimports"
-	@${GOIMPORTS} -w -local ${LOCAL_PACKAGES} ./cmd/** ./internal/** # ./pkg/**
+	@${GOIMPORTS} -w -local ${LOCAL_PACKAGES} ./internal/**
 
-golangci_lint:
-ifndef GOLANGCI_LINT
-	@echo ">>> golangci-lint missing, installing"
-	@curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b ${GOPATH}/bin v1.42.0
-	@GOLANGCI_LINT := $(shell command -v golangci-lint )
-endif
-	@echo ">>> golangci-lint"
-	@${GOLANGCI_LINT} run
 
-tidy: goimports golangci_lint
+tidy: goimports
 	@echo ">>> mod tidying"
-	@GOPATH=$(GOPATH) GOBIN=$(GOBIN) go mod tidy
+	@go mod tidy
 
 test:
 	@echo ">>> testing"

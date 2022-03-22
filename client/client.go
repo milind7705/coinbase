@@ -2,15 +2,11 @@ package client
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"main/config"
 	"main/internal/trade"
 	"net/url"
 	"os"
-	"os/signal"
-	"syscall"
-	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -27,19 +23,12 @@ type Client struct {
 	Path   string
 }
 
-var done chan interface{}
-var interrupt chan os.Signal
-
 func NewClient(scheme string, host string, path string) *Client {
 	return &Client{
 		Scheme: scheme, Host: host, Path: path,
 	}
 }
-func (client Client) Connect(exchange *config.Exchange, responseChannel chan trade.Response) {
-
-	done = make(chan interface{})
-
-	interrupt = make(chan os.Signal)
+func (client Client) Connect(exchange *config.Exchange, responseChannel chan trade.Response, OSSignal chan os.Signal) {
 
 	u := url.URL{Scheme: client.Scheme, Host: client.Host, Path: client.Path}
 
@@ -64,54 +53,38 @@ func (client Client) Connect(exchange *config.Exchange, responseChannel chan tra
 	}
 
 	receiveHandler(conn, responseChannel)
-	for {
-		select {
-		case <-interrupt:
-			// We received a SIGINT (Ctrl + C). Terminate gracefully...
-			log.Println("Received SIGINT interrupt signal. Closing all pending connections")
-
-			// Close our websocket connection
-			err := conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
-			if err != nil {
-				log.Println("Error during closing websocket:", err)
-				return
-			}
-
-			select {
-			case <-done:
-				log.Println("Receiver Channel Closed! Exiting....")
-			case <-time.After(time.Duration(1) * time.Second):
-				log.Println("Timeout in closing receiving channel. Exiting....")
-			}
-			return
-		}
+	for sig := range OSSignal {
+		log.Printf("Received %s signal. Closing all pending connections", sig)
+		return
 	}
+
 }
 
 func receiveHandler(connection *websocket.Conn, responseChannel chan trade.Response) {
+
 	go func() {
 		for {
 			_, msg, err := connection.ReadMessage()
 			if err != nil {
-				fmt.Println("Error in receive:", err)
+				log.Println("No messages to read; closing the response channel")
+				close(responseChannel)
 				return
 			}
 			resp := trade.Response{}
 			err = json.Unmarshal(msg, &resp)
 			if err != nil {
-				log.Fatal("Fatal")
+				log.Fatal("Fatal error occurred in unmarshalling")
+				return
 			}
 			responseChannel <- resp
 		}
 	}()
 }
 
-func (client *Client) InitSignalHandler(responseChannel chan trade.Response) {
-	sig := make(chan os.Signal, 1)
+func (client *Client) InitSignalHandler(OSSignal chan os.Signal) {
 
-	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
+	sig := <-OSSignal
+	log.Printf("Closing the channel with %s", sig)
 
-	log.Print("Closing")
-
-	close(responseChannel)
+	OSSignal <- sig
 }

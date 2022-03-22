@@ -6,13 +6,16 @@ import (
 	"main/config"
 	"main/internal/trade"
 	"os"
+	"os/signal"
+	"syscall"
 )
 
 const numberOfArgs = 2
 
+var OSSignal chan os.Signal
+
 func main() {
 
-	// TODO context and integration tests
 	exchange, err := config.DefaultExchange()
 	if err != nil {
 		panic("Unable to create exchange, check the default configs.")
@@ -32,11 +35,18 @@ func main() {
 
 	queue := trade.NewQueue(exchange.Maxsize)
 
+	// response channel to communicate between client and queue
 	responseChannel := make(chan trade.Response)
 
 	go queue.Populate(responseChannel)
 
-	client.Connect(exchange, responseChannel)
+	// channel for handling interrupts
+	OSSignal := make(chan os.Signal, 1)
 
-	go client.InitSignalHandler(responseChannel)
+	signal.Notify(OSSignal, syscall.SIGINT, syscall.SIGTERM)
+
+	go client.InitSignalHandler(OSSignal)
+
+	client.Connect(exchange, responseChannel, OSSignal)
+
 }
