@@ -20,7 +20,7 @@ all: test build
 
 build:
 	@echo ">>> building..."
-	@GOPATH=$(GOPATH) GOBIN=$(GOBIN) go build -race -o bin/vwap cmd/main.go
+	@GOPATH=$(GOPATH) GOBIN=$(GOBIN) go build -race -o bin/vwap main.go
 
 goimports:
 ifndef GOIMPORTS

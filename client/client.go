@@ -106,12 +106,12 @@ func receiveHandler(connection *websocket.Conn, responseChannel chan trade.Respo
 	}()
 }
 
-func (client *Client) InitSignalHandler() {
+func (client *Client) InitSignalHandler(responseChannel chan trade.Response) {
 	sig := make(chan os.Signal, 1)
 
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 
 	log.Print("Closing")
 
-	// client.Stop(<-sig)
+	close(responseChannel)
 }

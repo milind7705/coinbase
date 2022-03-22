@@ -12,6 +12,7 @@ const numberOfArgs = 2
 
 func main() {
 
+	// TODO context and integration tests
 	exchange, err := config.DefaultExchange()
 	if err != nil {
 		panic("Unable to create exchange, check the default configs.")
@@ -37,5 +38,5 @@ func main() {
 
 	client.Connect(exchange, responseChannel)
 
-	go client.InitSignalHandler()
+	go client.InitSignalHandler(responseChannel)
 }
