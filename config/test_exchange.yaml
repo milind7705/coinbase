@@ -1,0 +1,10 @@
+env: "dev"
+name: "local"
+scheme: "ws"
+host: "127.0.0.1"
+path: ""
+maxsize: 200
+message: 
+  type: "subscribe"
+  product_ids: ["BTC-USD", "ETH-USD", "ETH-BTC"]
+  channels: ["matches"]

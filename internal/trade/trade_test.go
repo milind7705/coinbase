@@ -62,7 +62,7 @@ func TestQueue_Populate(t *testing.T) {
 
 	close(responseChannel)
 	time.Sleep(time.Millisecond)
-
+	// the value should match vwap of 41631.3424234096541081
 	d, _ := decimal.NewFromString("41631.3424234096541081")
 
 	assert.Equal(t, d.Cmp(queue.VWAP["BTC-USD"]), 0)
