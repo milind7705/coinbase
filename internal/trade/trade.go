@@ -70,7 +70,9 @@ func (q *Queue) Dequeue() {
 
 	q.SummationPriceQuantity[element.ProductId] = q.SummationPriceQuantity[element.ProductId].Sub(element.Price.Mul(element.Size))
 	q.SummationQuantity[element.ProductId] = q.SummationQuantity[element.ProductId].Sub(element.Size)
-	q.VWAP[element.ProductId] = q.SummationPriceQuantity[element.ProductId].Div(q.SummationQuantity[element.ProductId])
+	if !q.SummationQuantity[element.ProductId].IsZero() {
+		q.VWAP[element.ProductId] = q.SummationPriceQuantity[element.ProductId].Div(q.SummationQuantity[element.ProductId])
+	}
 
 }
 
